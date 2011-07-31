@@ -1,0 +1,73 @@
+depreciate-ipv6-slaac.py is a simple proof of concept of how to spoof Router
+Advertisements and force any SLAAC'd devices, to mark their SLAAC addresses as
+depreciated.
+
+depreciate-ipv6-slaac.py has a fully automatic mode, but can also be invoked
+manually.
+
+When SLAAC addresses are marked as depreciated all existing traffic on that
+specific address will continue to work until the connection is closed. However,
+new traffic will not be accepted.
+
+If we continually sent out our packet the address will be continually marked as
+depreciated, and more importantly continually marked as valid for 2 hours
+(lowest time that you can set). Based on my testing the address is unlikely to
+be replaced in this scenario, and in the case of one OS it builds up a string of
+addresses that it cannot use.
+
+Now here's the bit I love the most about this; the major operating systems will
+continue to display the depreciated addresses in GUI's, and the primary command
+line tool (i.e. ifconfig, ipconfig, etc.). It is only when you dive into the
+lesser used tools (i.e. ip, or netsh) that you see that the addresses are
+depreciated.
+
+This is lack of visiblity is the important problem here. Many sysadmins, both
+junior and senior, do not yet have the experience with IPv6 to know that a SLAAC
+address can be marked as depreciated, and the fact that it still displays in the
+primary tools, but not passing all, or any, traffic would just confound them.
+
+This was all done within a few hours with the relevant RFCs and scapy. If I can
+do it then others probably will do, or have.
+
+The fact that v6 traffic is given prescedence over v4 makes this potentially
+dangerous. Should you be on a dual stack network, and have been able to
+successfully MITM the v4 network, but not the v6 (for some reason) this gives
+you the opportunity to potentially knoc the v6 out completely.
+
+So what about RA guard? I've been doing some playing and it looks like simply
+fragmenting the RA packets is enough to by pass RA guard. This is something I'm
+not yet implemented.
+
+As always this is proof of concept, and without warranty. It will break.
+Tested on Linux, only. Probably works where ever Scapy works.
+
+Usage: depreciate-ipv6-slaac.py [options]
+
+Options:
+  --version             show program's version number and exit
+  -h, --help            show this help message and exit
+  -a, --auto            Automatically find a v6 router, and use it's details
+                        to depreciate the network addresses. All options,
+                        except interface and interval, are ignored if this is
+                        invoked.
+  -f, --fragment        Fragment the packet to avoid RA guard. Currently not
+                        implemented.
+  -i IFACE, --interface=IFACE
+                        Interface to receive/send packets. Defaults to use
+                        eth0.
+  -m SRCMAC, --source-mac=SRCMAC
+                        Source MAC address for RA packet. If not using auto
+                        this is required.
+  -s SRCV6, --source-v6-addr=SRCV6
+                        Source IPv6 link local address (Starts fe80:). If not
+                        using auto this is required.
+  -p PREFIX, --prefix=PREFIX
+                        Target IPv6 prefix. If not using auto this is
+                        required.
+  -l PREFIXLEN, --prefix-len=PREFIXLEN
+                        Target IPv6 prefix length. Almost certainly 64. If not
+                        using auto this is required. Defaults to 64.
+  -t INTERVAL, --interval=INTERVAL
+                        Interval (seconds) between sending our spoofed
+                        packets. You may want to back this off in some
+                        instances. Defaults to 1 second.
